@@ -1,0 +1,13 @@
+{
+  "name": "zig-dev",
+  "context": "..",
+  "dockerFile": "../Dockerfile",
+  "workspaceFolder": "/ZigHTTP",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/ZigHTTP,type=bind"
+  ],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": ["vadimcn.vscode-lldb", "ziglang.vscode-zig", "eamodio.gitlens"]
+}
