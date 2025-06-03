@@ -1,4 +1,4 @@
-const ParseError = error{ NoRequestLine, MethodNotFound, UnrecognizedRequestFormat, InvalidHttpVersion, InvalidContentLength, HeadersTooLarge, BodyTooLarge } || std.mem.Allocator.Error || std.fs.File.ReadError || error{EndOfStream};
+const ParseError = error{ NoRequestLine, MethodNotFound, UnrecognizedRequestFormat, InvalidHttpVersion, InvalidContentLength, HeadersTooLarge, BodyTooLarge, ReaderError } || std.mem.Allocator.Error || std.fs.File.ReadError || error{EndOfStream};
 
 pub const Request = struct {
     method: http.Method,
@@ -41,6 +41,7 @@ pub const Request = struct {
         while (headers_buffer.items.len < max_headers_size) {
             const byte = reader.readByte() catch |err| switch (err) {
                 error.EndOfStream => break,
+                else => return ParseError.ReaderError
             };
 
             try headers_buffer.append(byte);
