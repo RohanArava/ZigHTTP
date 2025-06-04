@@ -1,5 +1,6 @@
 const ParseError = error{ NoResponseLine, UnrecognizedResponseFormat, InvalidHttpVersion, InvalidStatusCode, InvalidContentLength, HeadersTooLarge, ReaderError } || std.mem.Allocator.Error || std.fs.File.ReadError || error{EndOfStream};
 
+
 pub const Response = struct {
     version: http.Version,
     status: i32,
@@ -21,7 +22,7 @@ pub const Response = struct {
         self.headers.deinit();
     }
 
-    pub fn getHeader(self: *Response, name: []const u8) ?[]const u8 {
+    pub fn getHeader(self: *Response, name: []const u8) ?[]const u8{
         const lowercase_name = self.allocator.alloc(u8, name.len) catch return null;
         defer self.allocator.free(lowercase_name);
 
@@ -32,20 +33,20 @@ pub const Response = struct {
         return self.headers.get(lowercase_name);
     }
 
-    pub fn parse(reader: anytype, allocator: std.mem.Allocator) ParseError!Response {
+    pub fn parse(reader: anytype, allocator: std.mem.Allocator) ParseError!Response{
         var headers_buffer = std.ArrayList(u8).init(allocator);
         defer headers_buffer.deinit();
 
         const max_headers_size = 8192;
 
         while (headers_buffer.items.len < max_headers_size) {
-            const byte = reader.readByte() catch |err| {
+            const byte = reader.readByte() catch |err|{
                 if (err == error.EndOfStream) break;
                 return ParseError.ReaderError;
             };
 
             try headers_buffer.append(byte);
-
+            
             // Check for \r\n\r\n pattern
             if (headers_buffer.items.len >= 4) {
                 const last_four = headers_buffer.items[headers_buffer.items.len - 4 ..];
@@ -65,16 +66,16 @@ pub const Response = struct {
         const first_space_pos = std.mem.indexOf(u8, response_line, " ") orelse
             return ParseError.UnrecognizedResponseFormat;
 
-        const remaining_after_pos = response_line[first_space_pos + 1 ..];
+        const remaining_after_pos = response_line[first_space_pos + 1..];
         const second_space_pos = std.mem.indexOf(u8, remaining_after_pos, " ") orelse
             return ParseError.UnrecognizedResponseFormat;
-
+        
         const version_str = response_line[0..first_space_pos];
-        const status_str = response_line[first_space_pos + 1 .. first_space_pos + 1 + second_space_pos];
-        const description_str = response_line[first_space_pos + 1 + second_space_pos + 1 ..];
+        const status_str = response_line[first_space_pos + 1..first_space_pos + 1 + second_space_pos];
+        const description_str = response_line[first_space_pos + 1 + second_space_pos + 1..];
 
         const version = parseVersion(version_str) orelse return ParseError.InvalidHttpVersion;
-        const status = std.fmt.parseInt(i32, status_str, 10) catch
+        const status = std.fmt.parseInt(i32, status_str, 10) catch 
             return ParseError.InvalidStatusCode;
         if (status < 100 or status > 599) {
             return ParseError.InvalidStatusCode;
@@ -105,7 +106,7 @@ pub const Response = struct {
                 try headers.put(key_copy, value_copy);
             }
         }
-
+        
         const content_length: ?usize = if (headers.get("content-length")) |content_length|
             std.fmt.parseInt(usize, content_length, 10) catch return ParseError.InvalidContentLength
         else
@@ -114,6 +115,7 @@ pub const Response = struct {
         var body: []u8 = &[_]u8{};
         if (content_length) |len| {
             if (len > 0) {
+
                 body = try allocator.alloc(u8, len);
                 try reader.readNoEof(body);
             }
@@ -150,12 +152,12 @@ test "Parse HTTP Response With Body" {
         "Date: Wed, 04 Jun 2025 10:30:00 GMT\r\n" ++
         "\r\n" ++
         "{\"message\": \"Hello World\"}";
-
+        
     var stream = std.io.fixedBufferStream(response_string);
     const reader = stream.reader();
     var response = try Response.parse(reader, std.testing.allocator);
     defer response.deinit();
-
+    
     try std.testing.expectEqual(http.Version.HTTP_1_1, response.version);
     try std.testing.expectEqual(@as(i32, 200), response.status);
     try std.testing.expectEqualStrings("OK", response.description);
