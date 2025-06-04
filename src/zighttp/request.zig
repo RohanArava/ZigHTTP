@@ -41,7 +41,7 @@ pub const Request = struct {
         while (headers_buffer.items.len < max_headers_size) {
             const byte = reader.readByte() catch |err| switch (err) {
                 error.EndOfStream => break,
-                else => return ParseError.ReaderError
+                // else => return ParseError.ReaderError
             };
 
             try headers_buffer.append(byte);
