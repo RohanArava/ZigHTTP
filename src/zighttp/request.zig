@@ -32,6 +32,24 @@ pub const Request = struct {
         return self.headers.get(lowercase_name);
     }
 
+    pub fn setHeader(self: *Request, name: []const u8, value: []const u8) void {
+        const lowercase_name = self.allocator.alloc(u8, name.len) catch return null;
+        for (name, 0..) |c, i| {
+            lowercase_name[i] = std.ascii.toLower(c);
+        }
+
+        if (self.headers.contains(lowercase_name)) {
+            const keyPtr = self.headers.getKeyPtr(lowercase_name);
+            const valuePtr = self.headers.getPtr(lowercase_name);
+            defer self.allocator.free(keyPtr);
+            defer self.allocator.free(valuePtr);
+
+            self.headers.remove(lowercase_name);
+        }
+
+        self.headers.put(lowercase_name, value);
+    }
+
     pub fn parse(reader: anytype, allocator: std.mem.Allocator) ParseError!Request {
         var headers_buffer = std.ArrayList(u8).init(allocator);
         defer headers_buffer.deinit();
